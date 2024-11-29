@@ -1,0 +1,225 @@
+use RedNegocios;
+
+
+CREATE TABLE Negocio (
+    negocioId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del negocio
+    nombre VARCHAR(255) ,               -- Nombre del negocio
+    descripcion VARCHAR(MAX),                   -- Descripción del negocio
+    -- Columnas de gobernanza de registros
+    ---creado_por VARCHAR(100) NOT NULL,           -- Usuario que creó el registro
+    fechaCreacion DATETIME DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),  -- Fecha de la última modificación
+    activo BIT DEFAULT 1,              -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                 -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME                  -- Fecha de eliminación lógica del registro
+);
+
+CREATE TABLE Usuario (
+    usuarioId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del usuario
+    username VARCHAR(50) UNIQUE,     -- Nombre de usuario, debe ser único
+    email VARCHAR(100) UNIQUE,       -- Correo electrónico único
+    password VARCHAR(255) ,           -- Contraseña encriptada
+    habilitado BIT  DEFAULT 1,        -- Indicador si el usuario está activo
+    cuentaNoExpirada BIT  DEFAULT 1,  -- Indicador si la cuenta está expirada
+    credencialesNoExpiradas BIT  DEFAULT 1,  -- Indicador si las credenciales han expirado
+    cuentaNoBloqueada BIT  DEFAULT 1, -- Indicador si la cuenta está bloqueada
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100) ,          -- Usuario que creó el registro
+    fechaCreacion DATETIME  DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),               -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),       -- Fecha de la última modificación
+    activo BIT  DEFAULT 1,            -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME                 -- Fecha de eliminación lógica del registro
+);
+
+CREATE TABLE Autoridad (
+    autoridadId INT PRIMARY KEY IDENTITY(1,1), -- Identificador único de la autoridad
+    usuarioId INT,                             -- Identificador del usuario asociado
+    autoridad VARCHAR(50) ,            -- Rol o autoridad (ej. ROLE_USER, ROLE_ADMIN)
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100) ,           -- Usuario que creó el registro
+    fechaCreacion DATETIME  DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),       -- Fecha de la última modificación
+    activo BIT DEFAULT 1,             -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                 -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                 -- Fecha de eliminación lógica del registro
+    FOREIGN KEY (usuarioId) REFERENCES Usuario(usuarioId)  -- Clave foránea con la tabla Usuario
+);
+
+CREATE TABLE UsuarioNegocio (
+    usuarioNegocioId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del registro de relación
+    usuarioId INT  ,                          -- Identificador del usuario
+    negocioId INT  ,                          -- Identificador del negocio
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100)  ,                 -- Usuario que creó el registro
+    fechaCreacion DATETIME   DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                      -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),    -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                   -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                       -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                       -- Fecha de eliminación lógica del registro
+    -- Restricciones de claves foráneas
+    FOREIGN KEY (usuarioId) REFERENCES Usuario(usuarioId),  -- Clave foránea que conecta con la tabla Usuario
+    FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId)   -- Clave foránea que conecta con la tabla Negocio
+);
+
+CREATE TABLE TipoRelacionNegocioNegocio (
+    tipoRelacionId INT PRIMARY KEY IDENTITY(1,1), -- Identificador único del tipo de relación
+    descripcion VARCHAR(100)              -- Descripción del tipo de relación (ej. 'Proveedor', 'Cliente', 'Asociado')
+);
+
+-- Tabla NegocioNegocio para la relación entre dos negocios
+CREATE TABLE NegocioNegocio (
+    negocioNegocioId INT PRIMARY KEY IDENTITY(1,1),   -- Identificador único del registro de relación entre negocios
+    negocioId1 INT  ,                          -- Identificador del primer negocio
+    negocioId2 INT  ,                          -- Identificador del segundo negocio
+    tipoRelacionId INT  ,                      -- Identificador del tipo de relación
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100)  ,                  -- Usuario que creó el registro
+    fechaCreacion DATETIME   DEFAULT GETDATE(), -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                       -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),     -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                    -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                        -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                        -- Fecha de eliminación lógica del registro
+    -- Restricciones de claves foráneas
+    FOREIGN KEY (negocioId1) REFERENCES Negocio(negocioId),  -- Clave foránea con la tabla Negocio
+    FOREIGN KEY (negocioId2) REFERENCES Negocio(negocioId),  -- Clave foránea con la tabla Negocio
+    FOREIGN KEY (tipoRelacionId) REFERENCES TipoRelacionNegocioNegocio(tipoRelacionId)  -- Clave foránea con la tabla TipoRelacionNegocioNegocio
+);
+
+
+CREATE TABLE Orden (
+    ordenId INT PRIMARY KEY IDENTITY(1,1),     -- Identificador único de la orden
+    negocioId INT  ,                    -- Identificador del negocio asociado
+    numeroOrden VARCHAR(50)  ,          -- Número de la orden
+    fechaOrden DATETIME  ,              -- Fecha en la que se realizó la orden
+    montoTotal DECIMAL(18, 2)  ,        -- Monto total de la orden
+    estado VARCHAR(50)  ,               -- Estado de la orden (ej. 'Pendiente', 'Completada', etc.)
+    fechaCreacion DATETIME   DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),  -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,              -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                 -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                 -- Fecha de eliminación lógica del registro
+    FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId)  -- Llave foránea para la relación con Negocio
+);
+
+CREATE TABLE Producto (
+    productoId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del producto
+    nombre VARCHAR(255)  ,               -- Nombre del producto
+    descripcion VARCHAR(MAX),                   -- Descripción del producto
+    precio DECIMAL(18, 2)  ,             -- Precio del producto
+    fechaCreacion DATETIME   DEFAULT GETDATE(),  -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),  -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,              -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                 -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME                  -- Fecha de eliminación lógica del registro
+);
+
+-- Tabla NegocioProducto para la relación muchos a muchos entre Negocio y Producto
+CREATE TABLE NegocioProducto (
+    negocioId INT  ,                    -- Identificador del negocio
+    productoId INT  ,                   -- Identificador del producto
+    PRIMARY KEY (negocioId, productoId),       -- Clave primaria compuesta para evitar duplicados
+    -- Llaves foráneas para la relación
+    FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId),
+    FOREIGN KEY (productoId) REFERENCES Producto(productoId)
+);
+
+CREATE TABLE Persona (
+    personaId INT PRIMARY KEY IDENTITY(1,1),        -- Identificador único de la persona
+    nombre VARCHAR(255)  ,                    -- Nombre de la persona
+    apellido VARCHAR(255)  ,                  -- Apellido de la persona
+    email VARCHAR(255)  ,                     -- Correo electrónico de la persona
+    telefono VARCHAR(20),                            -- Teléfono de la persona
+    fechaCreacion DATETIME   DEFAULT GETDATE(), -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                      -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),    -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                   -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                       -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME                        -- Fecha de eliminación lógica del registro
+);
+
+-- Tabla LineaOrden para la relación muchos a muchos entre Orden y Producto
+CREATE TABLE LineaOrden (
+    ordenId INT  ,                      -- Identificador de la orden
+    productoId INT  ,                   -- Identificador del producto
+    cantidad INT  ,                     -- Cantidad del producto en la orden
+    precioUnitario DECIMAL(18, 2)  ,    -- Precio unitario del producto en el momento de la orden
+    PRIMARY KEY (ordenId, productoId),         -- Clave primaria compuesta para evitar duplicados
+    -- Llaves foráneas para la relación
+    FOREIGN KEY (ordenId) REFERENCES Orden(ordenId),
+    FOREIGN KEY (productoId) REFERENCES Producto(productoId)
+);
+
+CREATE TABLE TipoRelacionNegocioPersona (
+    tipoRelacionPersonaId INT PRIMARY KEY IDENTITY(1,1), -- Identificador único del tipo de relación
+    descripcion VARCHAR(100)                      -- Descripción del tipo de relación (ej. 'Empleado', 'Gerente', 'Consultor')
+);
+
+-- Tabla NegocioPersona para la relación muchos a muchos entre Negocio y Persona
+CREATE TABLE NegocioPersona (
+    negocioPersonaId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del registro de relación entre negocio y persona
+    negocioId INT  ,                          -- Identificador del negocio
+    personaId INT  ,                          -- Identificador de la persona
+    tipoRelacionPersonaId INT  ,              -- Identificador del tipo de relación
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100)  ,                 -- Usuario que creó el registro
+    fechaCreacion DATETIME   DEFAULT GETDATE(), -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                      -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),    -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                   -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                       -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                       -- Fecha de eliminación lógica del registro
+    -- Restricciones de claves foráneas
+    FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId),   -- Clave foránea con la tabla Negocio
+    FOREIGN KEY (personaId) REFERENCES Persona(personaId),   -- Clave foránea con la tabla Persona
+    FOREIGN KEY (tipoRelacionPersonaId) REFERENCES TipoRelacionNegocioPersona(tipoRelacionPersonaId)  -- Clave foránea con la tabla TipoRelacionNegocioPersona
+);
+
+CREATE TABLE Direccion (
+    direccionId INT PRIMARY KEY IDENTITY(1,1),        -- Identificador único de la dirección
+    calle VARCHAR(255)  ,                      -- Calle de la dirección
+    numero VARCHAR(50)  ,                      -- Número de la dirección
+    ciudad VARCHAR(100)  ,                     -- Ciudad de la dirección
+    estado VARCHAR(100)  ,                     -- Estado de la dirección
+    codigoPostal VARCHAR(20)  ,                -- Código postal de la dirección
+    pais VARCHAR(100)  ,                       -- País de la dirección
+    fechaCreacion DATETIME   DEFAULT GETDATE(), -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                       -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),     -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                    -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                        -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME                         -- Fecha de eliminación lógica del registro
+);
+
+-- Tabla TipoRelacionNegocioDireccion para catalogar los tipos de relación entre negocios y direcciones
+CREATE TABLE TipoRelacionNegocioDireccion (
+    tipoRelacionDireccionId INT PRIMARY KEY IDENTITY(1,1), -- Identificador único del tipo de relación
+    descripcion VARCHAR(100)                        -- Descripción del tipo de relación (ej. 'Oficina', 'Almacén', 'Sucursal')
+);
+
+-- Tabla NegocioDireccion para la relación muchos a muchos entre Negocio y Direccion
+CREATE TABLE NegocioDireccion (
+    negocioDireccionId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del registro de relación entre negocio y dirección
+    negocioId INT  ,                            -- Identificador del negocio
+    direccionId INT  ,                          -- Identificador de la dirección
+    tipoRelacionDireccionId INT  ,              -- Identificador del tipo de relación
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100)  ,                   -- Usuario que creó el registro
+    fechaCreacion DATETIME   DEFAULT GETDATE(), -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                        -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),      -- Fecha de la última modificación
+    activo BIT   DEFAULT 1,                     -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                         -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                         -- Fecha de eliminación lógica del registro
+    -- Restricciones de claves foráneas
+    FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId),   -- Clave foránea con la tabla Negocio
+    FOREIGN KEY (direccionId) REFERENCES Direccion(direccionId), -- Clave foránea con la tabla Direccion
+    FOREIGN KEY (tipoRelacionDireccionId) REFERENCES TipoRelacionNegocioDireccion(tipoRelacionDireccionId)  -- Clave foránea con la tabla TipoRelacionNegocioDireccion
+);
