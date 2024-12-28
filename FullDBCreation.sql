@@ -15,6 +15,29 @@ CREATE TABLE Negocio (
     fechaEliminacion DATETIME                  -- Fecha de eliminación lógica del registro
 );
 
+CREATE TABLE Beneficio (
+    beneficioId INT PRIMARY KEY IDENTITY(1,1),       -- Identificador único del beneficio
+    negocioNegocioId INT NOT NULL,                  -- Identificador de la relación entre negocios
+    descripcion VARCHAR(255) NOT NULL,             -- Descripción del beneficio
+    valor NUMERIC(18,2) NULL,                      -- Valor asociado al beneficio (ej. porcentaje de descuento)
+	visibleSoloAdmin BIT DEFAULT 1,                 -- bandera para saber si el beneficio es solo para admin
+    tipoBeneficio VARCHAR(100) NOT NULL,           -- Tipo del beneficio (ej. 'Descuento', 'Acceso Preferente', etc.)
+    condiciones VARCHAR(MAX) NULL,                 -- Detalles o condiciones del beneficio
+
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100) NOT NULL,               -- Usuario que creó el registro
+    fechaCreacion DATETIME DEFAULT GETDATE(),      -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                    -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(),  -- Fecha de la última modificación
+    activo BIT DEFAULT 1,                          -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                     -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                     -- Fecha de eliminación lógica del registro
+
+    -- Restricciones de claves foráneas
+    FOREIGN KEY (negocioNegocioId) REFERENCES NegocioNegocio(negocioNegocioId)  -- Clave foránea con la tabla NegocioNegocio
+);
+
+
 CREATE TABLE Usuario (
     usuarioId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del usuario
     username VARCHAR(50) UNIQUE,     -- Nombre de usuario, debe ser único
@@ -48,6 +71,24 @@ CREATE TABLE Autoridad (
     fechaEliminacion DATETIME,                 -- Fecha de eliminación lógica del registro
     FOREIGN KEY (usuarioId) REFERENCES Usuario(usuarioId)  -- Clave foránea con la tabla Usuario
 );
+
+CREATE TABLE UsuarioToken (
+    tokenId INT PRIMARY KEY IDENTITY(1,1),      -- Identificador único del token
+    usuarioId INT NOT NULL,                     -- Relación con la tabla Usuario
+    token VARCHAR(255) NOT NULL,               -- El token generado (por ejemplo, JWT)
+    fechaExpiracion DATETIME NOT NULL,          -- Fecha de expiración del token
+    habilitado BIT DEFAULT 1,                   -- Indicador si el token está activo
+    -- Columnas de gobernanza de registros
+    creadoPor VARCHAR(100),                     -- Usuario que creó el registro
+    fechaCreacion DATETIME DEFAULT GETDATE(),   -- Fecha de creación del registro
+    modificadoPor VARCHAR(100),                 -- Usuario que modificó el registro
+    fechaModificacion DATETIME DEFAULT GETDATE(), -- Fecha de la última modificación
+    activo BIT DEFAULT 1,                       -- Indicador de si el registro está activo
+    eliminadoPor VARCHAR(100),                  -- Usuario que eliminó (lógicamente) el registro
+    fechaEliminacion DATETIME,                  -- Fecha de eliminación lógica del registro
+    FOREIGN KEY (usuarioId) REFERENCES Usuario(usuarioId) -- Clave foránea con la tabla Usuario
+);
+
 
 CREATE TABLE UsuarioNegocio (
     usuarioNegocioId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del registro de relación
@@ -112,7 +153,7 @@ CREATE TABLE Producto (
     productoId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del producto
     nombre VARCHAR(255)  ,               -- Nombre del producto
     descripcion VARCHAR(MAX),                   -- Descripción del producto
-    precio DECIMAL(18, 2)  ,             -- Precio del producto
+    precio DECIMAL(18, 2)  ,             -- Precio del producto en promedio o algun precio este precio no es el importante
     fechaCreacion DATETIME   DEFAULT GETDATE(),  -- Fecha de creación del registro
     modificadoPor VARCHAR(100),                -- Usuario que modificó el registro
     fechaModificacion DATETIME DEFAULT GETDATE(),  -- Fecha de la última modificación
@@ -121,11 +162,11 @@ CREATE TABLE Producto (
     fechaEliminacion DATETIME                  -- Fecha de eliminación lógica del registro
 );
 
--- Tabla NegocioProducto para la relación muchos a muchos entre Negocio y Producto
 CREATE TABLE NegocioProducto (
+	negocioProductoId INT PRIMARY KEY IDENTITY(1,1),
     negocioId INT  ,                    -- Identificador del negocio
     productoId INT  ,                   -- Identificador del producto
-    PRIMARY KEY (negocioId, productoId),       -- Clave primaria compuesta para evitar duplicados
+	precioDeVenta DECIMAL(18, 2),        -- precio al cual el negocio esta vendiendo el producto
     -- Llaves foráneas para la relación
     FOREIGN KEY (negocioId) REFERENCES Negocio(negocioId),
     FOREIGN KEY (productoId) REFERENCES Producto(productoId)
@@ -147,14 +188,14 @@ CREATE TABLE Persona (
 
 -- Tabla LineaOrden para la relación muchos a muchos entre Orden y Producto
 CREATE TABLE LineaOrden (
+	lineaOrdenId INT PRIMARY KEY IDENTITY(1,1),
     ordenId INT  ,                      -- Identificador de la orden
-    productoId INT  ,                   -- Identificador del producto
+    negocioProductoId INT  ,                   -- Identificador del producto
     cantidad INT  ,                     -- Cantidad del producto en la orden
     precioUnitario DECIMAL(18, 2)  ,    -- Precio unitario del producto en el momento de la orden
-    PRIMARY KEY (ordenId, productoId),         -- Clave primaria compuesta para evitar duplicados
     -- Llaves foráneas para la relación
     FOREIGN KEY (ordenId) REFERENCES Orden(ordenId),
-    FOREIGN KEY (productoId) REFERENCES Producto(productoId)
+    FOREIGN KEY (negocioProductoId) REFERENCES NegocioProducto(negocioProductoId)
 );
 
 CREATE TABLE TipoRelacionNegocioPersona (
@@ -223,3 +264,31 @@ CREATE TABLE NegocioDireccion (
     FOREIGN KEY (direccionId) REFERENCES Direccion(direccionId), -- Clave foránea con la tabla Direccion
     FOREIGN KEY (tipoRelacionDireccionId) REFERENCES TipoRelacionNegocioDireccion(tipoRelacionDireccionId)  -- Clave foránea con la tabla TipoRelacionNegocioDireccion
 );
+
+CREATE TABLE CatalogoEstados (
+    estatusId INT PRIMARY KEY IDENTITY(1,1),  -- Identificador único del estado
+    nombre VARCHAR(50) NOT NULL,              -- Nombre del estado
+    descripcion VARCHAR(255),                 -- Descripción opcional del estado
+    fechaCreacion DATETIME DEFAULT GETDATE()  -- Fecha de creación del registro
+);
+
+-- Insertar registros iniciales
+INSERT INTO CatalogoEstados (nombre, descripcion)
+VALUES 
+    ('Pendiente de Aprobar', 'La relación está pendiente de ser aprobada'),
+    ('Aprobado', 'La relación ha sido aprobada'),
+    ('Rechazado', 'La relación ha sido rechazada');
+
+--- alteracion de tabla NegocioUsuario para que tenga la bandera que indique si esta pendiente de aprobacion o si esta o no aprobada.
+
+ALTER TABLE UsuarioNegocio
+ADD estatusId INT;  -- Nueva columna para el estatus de la relación
+
+-- Definir la clave foránea para la columna estatusId
+ALTER TABLE UsuarioNegocio
+ADD CONSTRAINT FK_Estatus_CatalogoEstados
+FOREIGN KEY (estatusId) REFERENCES CatalogoEstados(estatusId);
+
+
+
+
