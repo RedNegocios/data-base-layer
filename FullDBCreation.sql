@@ -290,5 +290,34 @@ ADD CONSTRAINT FK_Estatus_CatalogoEstados
 FOREIGN KEY (estatusId) REFERENCES CatalogoEstados(estatusId);
 
 
+--- Creamos la tabla de mensajes y transacciones de mensajes
+
+CREATE TABLE MensajeOrden (
+    mensajeOrdenId INT PRIMARY KEY IDENTITY(1,1),  -- ID único del mensaje
+    ordenId INT NOT NULL,                          -- Relacionado con la orden
+    emisorUsuarioId INT NULL,                      -- Si fue enviado por un usuario
+    emisorNegocioId INT NULL,                      -- Si fue enviado por el negocio
+    contenido TEXT NOT NULL,                       -- Mensaje como tal
+    fechaEnvio DATETIME DEFAULT GETDATE(),         -- Fecha de envío
+    leido BIT DEFAULT 0,                           -- Si fue leído por el receptor
+
+    -- Columnas de gobernanza
+    creadoPor VARCHAR(100),                        
+    fechaCreacion DATETIME DEFAULT GETDATE(),
+    modificadoPor VARCHAR(100),
+    fechaModificacion DATETIME DEFAULT GETDATE(),
+    activo BIT DEFAULT 1,
+    eliminadoPor VARCHAR(100),
+    fechaEliminacion DATETIME,
+
+    -- Restricciones
+    FOREIGN KEY (ordenId) REFERENCES Orden(ordenId),
+    FOREIGN KEY (emisorUsuarioId) REFERENCES Usuario(usuarioId),
+    FOREIGN KEY (emisorNegocioId) REFERENCES Negocio(negocioId),
+    CHECK (
+        (emisorUsuarioId IS NOT NULL AND emisorNegocioId IS NULL) OR
+        (emisorUsuarioId IS NULL AND emisorNegocioId IS NOT NULL)
+    )  -- Solo puede haber un emisor: usuario o negocio, no ambos
+);
 
 
